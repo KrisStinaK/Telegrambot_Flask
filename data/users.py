@@ -12,6 +12,6 @@ class User(SqlAlchemyBase):
     __tablename__ = 'users'
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, autoincrement=True)
     user_name = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-    position = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-    cost = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
-    modified_date = sqlalchemy.Column(sqlalchemy.String, nullable=True, default=datetime.datetime.now())
+    category = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    price = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+    today = sqlalchemy.Column(sqlalchemy.String, nullable=True, default=datetime.datetime.now())
