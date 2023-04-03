@@ -2,7 +2,6 @@ import datetime
 
 import telebot
 from config import TOKEN
-from datetime import date
 import time
 from telebot import types
 import requests
@@ -35,14 +34,15 @@ def startcommand(message):
 @bot.message_handler(commands=['help'])
 def help_command(message):
     time.sleep(0.3)
-    text = f'Записать расходы \nПосмотреть расходы\nРасходы по датам\nОбщая сумма расходов за день\nКуда сходить?'
+    text = f'Записать расходы \nПосмотреть расходы\nРасходы по датам' \
+           f'\nОбщая сумма расходов за день\nКуда сходить?\nКонвертировать валюту'
     bot.send_message(message.chat.id, text)
 
 
 @bot.message_handler()
 def on_click(message):
     if message.text.lower() == 'записать расходы':
-        bot.send_message(message.chat.id, 'Введите расход через дефис в виде [КАТЕГОРИЯ-ЦЕНА]:')
+        bot.send_message(message.chat.id, 'Введите расход через дефис в виде [КАТЕГОРИЯ-ЦЕНА-ВАЛЮТА]:')
         bot.register_next_step_handler(message, repeat_all_messages)
     elif message.text.lower() == 'показать расходы':
         for user in session.query(User).all():
@@ -56,6 +56,9 @@ def on_click(message):
     elif message.text.lower() == 'общая сумма расходов за день':
         bot.send_message(message.chat.id, 'Введите дату в формате дд-мм-гг')
         bot.register_next_step_handler(message, amount_of_expenses)
+    elif message.text.lower() == 'конвертировать валюту':
+        bot.send_message(message.chat.id, 'Введите валюту в формате [Из какой(GBP)-В какую(GBP)-Сколько]')
+        bot.register_next_step_handler(message, currency)
     if 'прив' in message.text.lower():
         time.sleep(0.3)
         bot.send_message(message.chat.id, 'Привет!☺')
@@ -63,11 +66,9 @@ def on_click(message):
 
 def repeat_all_messages(message):
     try:
+        category, price, currency = message.text.split('-')
         today = datetime.date.today()
-
-        #  разделяем сообщение на 2 части, категория и цена
-        category, price = message.text.split("-", 1)
-        text_message = f'На {today} в таблицу расходов добавлена запись: категория {category}, сумма {price} сум'
+        text_message = f'На {today} в таблицу расходов добавлена запись: категория {category}, сумма {price} {currency}'
         bot.send_message(message.chat.id, text_message)
 
         # открываем таблицу и добавляем запись
@@ -75,6 +76,7 @@ def repeat_all_messages(message):
         user.user_name = message.from_user.first_name
         user.category = category
         user.price = price
+        user.currency = currency
         user.today = today
         session.add(user)
         session.commit()
@@ -114,20 +116,38 @@ def amount_of_expenses(message):
         bot.send_message(message.chat.id, 'На эту дату нет расходов')
 
 
+def currency(message):
+    cur, is_cur, bablo = message.text.split('-')
+    url = f"https://api.apilayer.com/fixer/convert?to={cur}&from={is_cur}&amount={bablo}"
+
+    payload = {}
+    headers = {
+        "apikey": "rUFaftGw0CkdMq4KL8ZMCMxezCLLeigq"
+    }
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+    if response:
+        try:
+            json = response.json()['result']
+            bot.send_message(message.chat.id, str(json))
+        except:
+            pass
+
+
 def poisk(message):
     apikey = "9ec7254a-4fc4-49cf-b617-89cd8e5f5860"
     sp = message.text.split(', ')
     try:
         request = f'https://search-maps.yandex.ru/v1/?text={sp[0]},{sp[1]}&type=biz&lang=ru_RU&apikey={apikey}'
-        responce = requests.get(request)
-        if responce:
+        response = requests.get(request)
+        if response:
             try:
                 for i in range(1, 10):
-                    json = responce.json()['features'][i]['properties']['CompanyMetaData']['Categories'][0]['name']
-                    json1 = responce.json()['features'][i]['properties']['CompanyMetaData']['Hours']['text']
-                    json2 = responce.json()['features'][i]['properties']['CompanyMetaData']['name']
-                    json3 = responce.json()['features'][i]['properties']['CompanyMetaData']['address']
-                    json4 = responce.json()['features'][i]['properties']['CompanyMetaData']['Phones'][0]['formatted']
+                    json = response.json()['features'][i]['properties']['CompanyMetaData']['Categories'][0]['name']
+                    json1 = response.json()['features'][i]['properties']['CompanyMetaData']['Hours']['text']
+                    json2 = response.json()['features'][i]['properties']['CompanyMetaData']['name']
+                    json3 = response.json()['features'][i]['properties']['CompanyMetaData']['address']
+                    json4 = response.json()['features'][i]['properties']['CompanyMetaData']['Phones'][0]['formatted']
                     text_message = f'{json}, {json2} \n{json3} \n{json1} \n{json4}\n'
                     bot.send_message(message.chat.id, text_message)
             except:

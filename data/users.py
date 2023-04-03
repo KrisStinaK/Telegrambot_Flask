@@ -14,4 +14,6 @@ class User(SqlAlchemyBase):
     user_name = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     category = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     price = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+    currency = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     today = sqlalchemy.Column(sqlalchemy.String, nullable=True, default=datetime.datetime.now())
+
