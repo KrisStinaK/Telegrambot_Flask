@@ -1,5 +1,5 @@
 import datetime
-
+from pprint import pprint
 import telebot
 from config import TOKEN
 import time
@@ -35,7 +35,8 @@ def startcommand(message):
 def help_command(message):
     time.sleep(0.3)
     text = f'Записать расходы \nПосмотреть расходы\nРасходы по датам' \
-           f'\nОбщая сумма расходов за день\nКуда сходить?\nКонвертировать валюту'
+           f'\nОбщая сумма расходов за день\nКуда сходить?\nКонвертировать валюту\n' \
+           f'Курс валюты'
     bot.send_message(message.chat.id, text)
 
 
@@ -49,7 +50,9 @@ def on_click(message):
             text_message = f'{user.today} \nПользователь: {user.user_name} \nкатегория: {user.category} \nсумма: {user.price}\n'
             bot.send_message(message.chat.id, text_message)
     elif message.text.lower() == 'куда сходить?':
-        bot.register_next_step_handler(message, organization)
+        text_message = 'Выберите категорию и город в формате ["КАТЕГОРИЯ", "ГОРОД"]:'
+        bot.send_message(message.chat.id, text_message)
+        bot.register_next_step_handler(message, poisk)
     elif message.text.lower() == 'расходы по датам':
         bot.send_message(message.chat.id, 'Введите дату в формате дд-мм-гг')
         bot.register_next_step_handler(message, expenses_by_dates)
@@ -59,6 +62,9 @@ def on_click(message):
     elif message.text.lower() == 'конвертировать валюту':
         bot.send_message(message.chat.id, 'Введите валюту в формате [Из какой(GBP)-В какую(GBP)-Сколько]')
         bot.register_next_step_handler(message, currency)
+    elif message.text.lower() == 'курс валюты':
+        bot.send_message(message.chat.id, 'Введите валюту в формате (GBP)')
+        bot.register_next_step_handler(message, currency_exchange_rate)
     if 'прив' in message.text.lower():
         time.sleep(0.3)
         bot.send_message(message.chat.id, 'Привет!☺')
@@ -84,12 +90,6 @@ def repeat_all_messages(message):
         # если пользователь ввел неправильную информацию, оповещаем его и просим вводить повторно
         bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
         bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
-
-
-def organization(message):
-    text_message = 'Выберите категорию и город в формате ["КАТЕГОРИЯ", "ГОРОД"]:'
-    bot.send_message(message.chat.id, text_message)
-    bot.register_next_step_handler(message, poisk)
 
 
 def expenses_by_dates(message):
@@ -131,7 +131,17 @@ def currency(message):
             json = response.json()['result']
             bot.send_message(message.chat.id, str(json))
         except:
-            pass
+            bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
+            bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
+
+
+def currency_exchange_rate(message):
+    try:
+        data = requests.get('https://www.cbr-xml-daily.ru/daily_json.js').json()
+        bot.send_message(message.chat.id, f"{data['Valute'][message.text]['Value']} ₽")
+    except:
+        bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
+        bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
 
 
 def poisk(message):
@@ -151,7 +161,7 @@ def poisk(message):
                     text_message = f'{json}, {json2} \n{json3} \n{json1} \n{json4}\n'
                     bot.send_message(message.chat.id, text_message)
             except:
-                pass
+                bot.send_message(message.chat.id, 'ОШИБКА! Что-то пошло не так, введите команду заново и повторите попытку')
 
     except:
         bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
