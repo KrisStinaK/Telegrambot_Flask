@@ -36,7 +36,7 @@ def help_command(message):
     time.sleep(0.3)
     text = f'Записать расходы \nПосмотреть расходы\nРасходы по датам' \
            f'\nОбщая сумма расходов за день\nКуда сходить?\nКонвертировать валюту\n' \
-           f'Курс валюты'
+           f'Курс валюты \nКалькулятор'
     bot.send_message(message.chat.id, text)
 
 
@@ -60,11 +60,14 @@ def on_click(message):
         bot.send_message(message.chat.id, 'Введите дату в формате дд-мм-гг')
         bot.register_next_step_handler(message, amount_of_expenses)
     elif message.text.lower() == 'конвертировать валюту':
-        bot.send_message(message.chat.id, 'Введите валюту в формате [Из какой(GBP)-В какую(GBP)-Сколько]')
+        bot.send_message(message.chat.id, 'Введите валюту в формате [В какую(GBP)-Из какой(GBP)-Сколько]')
         bot.register_next_step_handler(message, currency)
     elif message.text.lower() == 'курс валюты':
         bot.send_message(message.chat.id, 'Введите валюту в формате (GBP)')
         bot.register_next_step_handler(message, currency_exchange_rate)
+    elif message.text.lower() == 'калькулятор':
+        bot.send_message(message.chat.id, 'Введите математическое выражение и я посчитаю его.')
+        bot.register_next_step_handler(message, calculate)
     if 'прив' in message.text.lower():
         time.sleep(0.3)
         bot.send_message(message.chat.id, 'Привет!☺')
@@ -142,6 +145,13 @@ def currency_exchange_rate(message):
     except:
         bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
         bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
+
+
+def calculate(message):
+    try:
+        bot.send_message(message.chat.id, eval(message.text))
+    except:
+        bot.send_message(message.chat.id, 'Неверное выражение! Попробуйте еще раз.')
 
 
 def poisk(message):
