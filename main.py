@@ -63,33 +63,33 @@ def switch_calc_mode(message):
         print(calc_mode)
 
 
-# @bot.message_handler(func=lambda message: True)
-# def process_request(message):
-#     try:
-#         if message.text.lower() not in ['записать расходы', 'показать расходы',
-#                                         'куда сходить?', 'расходы по датам',
-#                                         'общая сумма расходов за день', 'конвертировать валюту',
-#                                         'курс валюты', 'калькулятор', 'добавить капитал', 'Баланс']:
-#
-#             # Get user message
-#             user_message = message.text
-#             response = openai.Completion.create(
-#                 engine="text-davinci-003",
-#                 prompt=user_message,
-#                 max_tokens=50
-#             )
-#
-#             # Get OpenAI response
-#             bot_response = response.choices[0].text
-#
-#             # Send response to user
-#             bot.reply_to(message, bot_response)
-#         else:
-#             bot.register_next_step_handler(message, on_click)
-#
-#     except Exception as e:
-#         # Handle errors
-#         bot.reply_to(message, "Sorry, I couldn't process your request. Please try again later.")
+@bot.message_handler(func=lambda message: True)
+def process_request(message):
+    try:
+        if message.text.lower() not in ['записать расходы', 'показать расходы',
+                                        'куда сходить?', 'расходы по датам',
+                                        'общая сумма расходов за день', 'конвертировать валюту',
+                                        'курс валюты', 'калькулятор', 'добавить капитал', 'Баланс']:
+
+            # Get user message
+            user_message = message.text
+            response = openai.Completion.create(
+                engine="text-davinci-003",
+                prompt=user_message,
+                max_tokens=50
+            )
+
+            # Get OpenAI response
+            bot_response = response.choices[0].text
+
+            # Send response to user
+            bot.reply_to(message, bot_response)
+        else:
+            bot.register_next_step_handler(message, on_click)
+
+    except Exception as e:
+        # Handle errors
+        bot.reply_to(message, "Sorry, I couldn't process your request. Please try again later.")
 
 
 @bot.message_handler()
