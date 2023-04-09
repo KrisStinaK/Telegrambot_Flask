@@ -1,17 +1,17 @@
 import datetime
-from pprint import pprint
 import telebot
 from config import TOKEN
 import time
 from telebot import types
 import requests
+import openai
 
 from data import db_session
 from data.users import User
 
 
 bot = telebot.TeleBot(TOKEN)
-
+openai.api_key = "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"
 db_session.global_init('db/record.sqlite')
 session = db_session.create_session()
 
@@ -31,12 +31,41 @@ def startcommand(message):
     bot.send_message(message.chat.id, 'Вызовите команду "/help" для просмотра команд и возможностей')
 
 
+@bot.message_handler(func=lambda message: True)
+def process_request(message):
+    try:
+        if message.text.lower() not in ['записать расходы', 'показать расходы',
+                                        'куда сходить?', 'расходы по датам',
+                                        'общая сумма расходов за день', 'конвертировать валюту',
+                                        'курс валюты', 'калькулятор', 'добавить капитал', 'Баланс']:
+
+            # Get user message
+            user_message = message.text
+            response = openai.Completion.create(
+                engine="text-davinci-003",
+                prompt=user_message,
+                max_tokens=50
+            )
+
+            # Get OpenAI response
+            bot_response = response.choices[0].text
+
+            # Send response to user
+            bot.reply_to(message, bot_response)
+        else:
+            bot.register_next_step_handler(message, on_click)
+
+    except Exception as e:
+        # Handle errors
+        bot.reply_to(message, "Sorry, I couldn't process your request. Please try again later.")
+
+
 @bot.message_handler(commands=['help'])
 def help_command(message):
     time.sleep(0.3)
     text = f'Записать расходы \nПосмотреть расходы\nРасходы по датам' \
            f'\nОбщая сумма расходов за день\nКуда сходить?\nКонвертировать валюту\n' \
-           f'Курс валюты \nКалькулятор'
+           f'Курс валюты \nКалькулятор\nДобавить капитал\nБаланс'
     bot.send_message(message.chat.id, text)
 
 
@@ -68,31 +97,33 @@ def on_click(message):
     elif message.text.lower() == 'калькулятор':
         bot.send_message(message.chat.id, 'Введите математическое выражение и я посчитаю его.')
         bot.register_next_step_handler(message, calculate)
-    if 'прив' in message.text.lower():
-        time.sleep(0.3)
-        bot.send_message(message.chat.id, 'Привет!☺')
+    elif message.text.lower() == 'добавить капитал':
+        bot.send_message(message.chat.id, 'Введите ваш капитал')
+        bot.register_next_step_handler(message, capital)
+    elif message.text.lower() == 'Баланс':
+        bot.register_next_step_handler(message, balance)
 
 
 def repeat_all_messages(message):
-    try:
-        category, price, currency = message.text.split('-')
-        today = datetime.date.today()
-        text_message = f'На {today} в таблицу расходов добавлена запись: категория {category}, сумма {price} {currency}'
-        bot.send_message(message.chat.id, text_message)
+        try:
+            category, price, currency = message.text.split('-')
+            today = datetime.date.today()
+            text_message = f'На {today} в таблицу расходов добавлена запись: категория {category}, сумма {price} {currency}'
+            bot.send_message(message.chat.id, text_message)
 
-        # открываем таблицу и добавляем запись
-        user = User()
-        user.user_name = message.from_user.first_name
-        user.category = category
-        user.price = price
-        user.currency = currency
-        user.today = today
-        session.add(user)
-        session.commit()
-    except:
-        # если пользователь ввел неправильную информацию, оповещаем его и просим вводить повторно
-        bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
-        bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
+            # открываем таблицу и добавляем запись
+            user = User()
+            user.user_name = message.from_user.first_name
+            user.category = category
+            user.price = price
+            user.currency = currency
+            user.today = today
+            session.add(user)
+            session.commit()
+        except:
+            bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
+            bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
+            bot.register_next_step_handler(message, balance)
 
 
 def expenses_by_dates(message):
@@ -117,6 +148,22 @@ def amount_of_expenses(message):
         print(sum(list(map(int, total_amount))))
     else:
         bot.send_message(message.chat.id, 'На эту дату нет расходов')
+
+
+def capital(message):
+    try:
+        user = User()
+        user.capital = int(message.text)
+        session.add(user)
+        session.commit()
+        bot.send_message(message.chat.id, 'Теперь я могу считывать ваш баланс!')
+    except:
+        bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
+        bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
+
+
+def balance(message):
+    pass
 
 
 def currency(message):

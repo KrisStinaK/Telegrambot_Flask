@@ -16,4 +16,5 @@ class User(SqlAlchemyBase):
     price = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
     currency = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     today = sqlalchemy.Column(sqlalchemy.String, nullable=True, default=datetime.datetime.now())
+    capital = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
 
