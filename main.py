@@ -5,13 +5,14 @@ import time
 from telebot import types
 import requests
 import openai
+import pygame
 
 from data import db_session
 from data.users import User
 
 
 bot = telebot.TeleBot(TOKEN)
-openai.api_key = "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"
+openai.api_key = "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"
 db_session.global_init('db/record.sqlite')
 session = db_session.create_session()
 
@@ -23,7 +24,7 @@ gpt_mode = False
 def help_command(message):
     time.sleep(0.3)
     text = f'Записать расходы \nПосмотреть расходы\nРасходы по датам' \
-           f'\nОбщая сумма расходов за день\nКуда сходить?\nКонвертировать валюту\n' \
+           f'\nОбщая сумма расходов за день\nПоиск организации\nКонвертировать валюту\n' \
            f'Курс валюты \nКалькулятор\nДобавить капитал\nБаланс'
     bot.send_message(message.chat.id, text)
 
@@ -34,7 +35,7 @@ def startcommand(message):
     markup = types.ReplyKeyboardMarkup()
     btn1 = types.KeyboardButton('Записать расходы')
     btn2 = types.KeyboardButton('Показать расходы')
-    btn3 = types.KeyboardButton('Куда сходить?')
+    btn3 = types.KeyboardButton('поиск организации')
     btn4 = types.KeyboardButton('Расходы по датам')
     btn5 = types.KeyboardButton('Общая сумма расходов за день')
     btn6 = types.KeyboardButton('Конвертировать валюту')
@@ -63,35 +64,6 @@ def switch_calc_mode(message):
         print(calc_mode)
 
 
-@bot.message_handler(func=lambda message: True)
-def process_request(message):
-    try:
-        if message.text.lower() not in ['записать расходы', 'показать расходы',
-                                        'куда сходить?', 'расходы по датам',
-                                        'общая сумма расходов за день', 'конвертировать валюту',
-                                        'курс валюты', 'калькулятор', 'добавить капитал', 'Баланс']:
-
-            # Get user message
-            user_message = message.text
-            response = openai.Completion.create(
-                engine="text-davinci-003",
-                prompt=user_message,
-                max_tokens=50
-            )
-
-            # Get OpenAI response
-            bot_response = response.choices[0].text
-
-            # Send response to user
-            bot.reply_to(message, bot_response)
-        else:
-            bot.register_next_step_handler(message, on_click)
-
-    except Exception as e:
-        # Handle errors
-        bot.reply_to(message, "Sorry, I couldn't process your request. Please try again later.")
-
-
 @bot.message_handler()
 def on_click(message):
     if calc_mode:
@@ -104,7 +76,7 @@ def on_click(message):
             for user in session.query(User).all():
                 text_message = f'{user.today} \nПользователь: {user.user_name} \nкатегория: {user.category} \nсумма: {user.price}\n'
                 bot.send_message(message.chat.id, text_message)
-        elif message.text.lower() == 'куда сходить?':
+        elif message.text.lower() == 'поиск организации':
             text_message = 'Выберите категорию и город в формате ["КАТЕГОРИЯ", "ГОРОД"]:'
             bot.send_message(message.chat.id, text_message)
             bot.register_next_step_handler(message, poisk)
@@ -235,28 +207,44 @@ def currency_exchange_rate(message):
         bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
         bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
 
+
 def poisk(message):
     apikey = "9ec7254a-4fc4-49cf-b617-89cd8e5f5860"
     sp = message.text.split(', ')
-    try:
-        request = f'https://search-maps.yandex.ru/v1/?text={sp[0]},{sp[1]}&type=biz&lang=ru_RU&apikey={apikey}'
-        response = requests.get(request)
-        if response:
-            try:
-                for i in range(1, 10):
-                    json = response.json()['features'][i]['properties']['CompanyMetaData']['Categories'][0]['name']
-                    json1 = response.json()['features'][i]['properties']['CompanyMetaData']['Hours']['text']
-                    json2 = response.json()['features'][i]['properties']['CompanyMetaData']['name']
-                    json3 = response.json()['features'][i]['properties']['CompanyMetaData']['address']
-                    json4 = response.json()['features'][i]['properties']['CompanyMetaData']['Phones'][0]['formatted']
-                    text_message = f'{json}, {json2} \n{json3} \n{json1} \n{json4}\n'
-                    bot.send_message(message.chat.id, text_message)
-            except:
-                bot.send_message(message.chat.id, 'ОШИБКА! Что-то пошло не так, введите команду заново и повторите попытку')
+    sp2 = []
+    request = f'https://search-maps.yandex.ru/v1/?text={sp[0]},{sp[1]}&type=biz&lang=ru_RU&apikey={apikey}'
+    response = requests.get(request)
+    if response:
+        try:
+            for i in range(1, 20):
+                json = response.json()['features'][i]['properties']['CompanyMetaData']['Categories'][0]['name']
+                json1 = response.json()['features'][i]['properties']['CompanyMetaData']['Hours']['text']
+                json2 = response.json()['features'][i]['properties']['CompanyMetaData']['name']
+                json3 = response.json()['features'][i]['properties']['CompanyMetaData']['address']
+                json4 = response.json()['features'][i]['properties']['CompanyMetaData']['Phones'][0]['formatted']
+                json_st = response.json()['features'][i]['geometry']['coordinates'][0]
+                json_st2 = response.json()['features'][i]['geometry']['coordinates'][1]
+                sp2.append(json_st), sp2.append(json_st2)
+                text_message = f'{json}, {json2} \n{json3} \n{json1} \n{json4}\n'
+                bot.send_message(message.chat.id, text_message)
+        except:
 
-    except:
-        bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
-        bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
+            bot.send_message(message.chat.id, 'ОШИБКА! Что-то пошло не так, введите команду заново и повторите попытку')
+            pygame.init()
+
+            request = f'https://static-maps.yandex.ru/1.x/?pt={sp2[0]},{sp2[1]},org~{sp2[2]},' \
+                      f'{sp2[3]},org~{sp2[4]},{sp2[5]},org~{sp2[6]},{sp2[7]},org~{sp2[8]},{sp2[9]},org,&z=13&size=650,450&l=map'
+            print(sp2)
+            response = requests.get(request)
+            if response:
+                with open('map.jpeg', mode='wb') as map_file:
+                    map_file.write(response.content)
+                photo = open('map.jpeg', 'rb')
+                bot.send_photo(message.chat.id, photo)
+            else:
+                raise RuntimeError
+
+
     # https://search-maps.yandex.ru/v1/?text=кафе,Псков&type=biz&lang=ru_RU&apikey=9ec7254a-4fc4-49cf-b617-89cd8e5f5860
 
 
