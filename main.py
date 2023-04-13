@@ -17,7 +17,7 @@ db_session.global_init('db/record.sqlite')
 session = db_session.create_session()
 
 calc_mode = False
-gpt_mode = False
+balanc = 0
 
 
 @bot.message_handler(commands=['help'])
@@ -35,7 +35,7 @@ def startcommand(message):
     markup = types.ReplyKeyboardMarkup()
     btn1 = types.KeyboardButton('Записать расходы')
     btn2 = types.KeyboardButton('Показать расходы')
-    btn3 = types.KeyboardButton('поиск организации')
+    btn3 = types.KeyboardButton('Поиск организации')
     btn4 = types.KeyboardButton('Расходы по датам')
     btn5 = types.KeyboardButton('Общая сумма расходов за день')
     btn6 = types.KeyboardButton('Конвертировать валюту')
@@ -95,7 +95,7 @@ def on_click(message):
         elif message.text.lower() == 'добавить капитал':
             bot.send_message(message.chat.id, 'Введите ваш капитал')
             bot.register_next_step_handler(message, capital)
-        elif message.text.lower() == 'Баланс':
+        elif message.text.lower() == 'баланс':
             bot.register_next_step_handler(message, balance)
 
 
@@ -119,25 +119,27 @@ def is_calc_type(message):
 
 
 def repeat_all_messages(message):
-        try:
-            category, price, currency = message.text.split('-')
-            today = datetime.date.today()
-            text_message = f'На {today} в таблицу расходов добавлена запись: категория {category}, сумма {price} {currency}'
-            bot.send_message(message.chat.id, text_message)
+    global balanc
+    try:
+        category, price, currency = message.text.split('-')
+        today = datetime.date.today()
+        text_message = f'На {today} в таблицу расходов добавлена запись: категория {category}, сумма {price} {currency}'
+        bot.send_message(message.chat.id, text_message)
+        balanc -= int(price)
 
-            # открываем таблицу и добавляем запись
-            user = User()
-            user.user_name = message.from_user.first_name
-            user.category = category
-            user.price = price
-            user.currency = currency
-            user.today = today
-            session.add(user)
-            session.commit()
-        except:
-            bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
-            bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
-            bot.register_next_step_handler(message, balance)
+        # открываем таблицу и добавляем запись
+        user = User()
+        user.user_name = message.from_user.first_name
+        user.category = category
+        user.price = price
+        user.currency = currency
+        user.today = today
+        user.capital = balanc
+        session.add(user)
+        session.commit()
+    except:
+        bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
+        bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
 
 
 def expenses_by_dates(message):
@@ -165,7 +167,9 @@ def amount_of_expenses(message):
 
 
 def capital(message):
+    global balanc
     try:
+        balanc += int(message.text)
         user = User()
         user.capital = int(message.text)
         session.add(user)
@@ -177,7 +181,8 @@ def capital(message):
 
 
 def balance(message):
-    pass
+    global balanc
+    bot.send_message(message.chat.id, str(balanc))
 
 
 def currency(message):
@@ -232,17 +237,17 @@ def poisk(message):
             bot.send_message(message.chat.id, 'ОШИБКА! Что-то пошло не так, введите команду заново и повторите попытку')
             pygame.init()
 
-            request = f'https://static-maps.yandex.ru/1.x/?pt={sp2[0]},{sp2[1]},org~{sp2[2]},' \
-                      f'{sp2[3]},org~{sp2[4]},{sp2[5]},org~{sp2[6]},{sp2[7]},org~{sp2[8]},{sp2[9]},org,&z=13&size=650,450&l=map'
-            print(sp2)
-            response = requests.get(request)
-            if response:
-                with open('map.jpeg', mode='wb') as map_file:
-                    map_file.write(response.content)
-                photo = open('map.jpeg', 'rb')
-                bot.send_photo(message.chat.id, photo)
-            else:
-                raise RuntimeError
+        request = f'https://static-maps.yandex.ru/1.x/?pt={sp2[0]},{sp2[1]},org~{sp2[2]},' \
+                  f'{sp2[3]},org~{sp2[4]},{sp2[5]},org~{sp2[6]},{sp2[7]},org~{sp2[8]},{sp2[9]},org,&z=13&size=650,450&l=map'
+        print(sp2)
+        response = requests.get(request)
+        if response:
+            with open('map.jpeg', mode='wb') as map_file:
+                map_file.write(response.content)
+            photo = open('map.jpeg', 'rb')
+            bot.send_photo(message.chat.id, photo)
+        else:
+            raise RuntimeError
 
 
     # https://search-maps.yandex.ru/v1/?text=кафе,Псков&type=biz&lang=ru_RU&apikey=9ec7254a-4fc4-49cf-b617-89cd8e5f5860
