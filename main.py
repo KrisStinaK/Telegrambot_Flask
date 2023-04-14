@@ -12,7 +12,7 @@ from data.users import User
 
 
 bot = telebot.TeleBot(TOKEN)
-openai.api_key = "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"
+# openai.api_key = "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"
 db_session.global_init('db/record.sqlite')
 session = db_session.create_session()
 
@@ -115,6 +115,7 @@ def on_click(message):
             bot.register_next_step_handler(message, balance)
 
 
+@bot.message_handler()
 def process_request(message):
     try:
         if message.text.lower() not in ['записать расходы', 'показать расходы',
