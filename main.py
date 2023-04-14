@@ -12,11 +12,12 @@ from data.users import User
 
 
 bot = telebot.TeleBot(TOKEN)
-openai.api_key = "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"
+openai.api_key = "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"
 db_session.global_init('db/record.sqlite')
 session = db_session.create_session()
 
 calc_mode = False
+gpt_mode = False
 balanc = 0
 
 
@@ -64,10 +65,25 @@ def switch_calc_mode(message):
         print(calc_mode)
 
 
+@bot.message_handler(commands=['gpt'])
+def switch_calc_mode(message):
+    global gpt_mode
+    if gpt_mode:
+        bot.send_message(message.chat.id, 'режим gpt выключен')
+        gpt_mode = False
+        print(gpt_mode)
+    else:
+        bot.send_message(message.chat.id, 'режим gpt включен')
+        gpt_mode = True
+        print(gpt_mode)
+
+
 @bot.message_handler()
 def on_click(message):
     if calc_mode:
         bot.reply_to(message, calculate(message.text))
+    if gpt_mode:
+        process_request(message)
     else:
         if message.text.lower() == 'записать расходы':
             bot.send_message(message.chat.id, 'Введите расход через дефис в виде [КАТЕГОРИЯ-ЦЕНА-ВАЛЮТА]:')
@@ -97,6 +113,34 @@ def on_click(message):
             bot.register_next_step_handler(message, capital)
         elif message.text.lower() == 'баланс':
             bot.register_next_step_handler(message, balance)
+
+
+def process_request(message):
+    try:
+        if message.text.lower() not in ['записать расходы', 'показать расходы',
+                                        'куда сходить?', 'расходы по датам',
+                                        'общая сумма расходов за день', 'конвертировать валюту',
+                                        'курс валюты', 'калькулятор', 'добавить капитал', 'Баланс']:
+
+            # Get user message
+            user_message = message.text
+            response = openai.Completion.create(
+                engine="text-davinci-003",
+                prompt=user_message,
+                max_tokens=50
+            )
+
+            # Get OpenAI response
+            bot_response = response.choices[0].text
+
+            # Send response to user
+            bot.reply_to(message, bot_response)
+        else:
+            bot.register_next_step_handler(message, on_click)
+
+    except Exception as e:
+        # Handle errors
+        bot.reply_to(message, "Sorry, I couldn't process your request. Please try again later.")
 
 
 def calculate(message):
