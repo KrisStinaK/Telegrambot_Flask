@@ -10,22 +10,13 @@ import pygame
 from data import db_session
 from data.users import User
 
+
 bot = telebot.TeleBot(TOKEN)
-openai.api_key = "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"
+openai.api_key = "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"
 db_session.global_init('db/record.sqlite')
 session = db_session.create_session()
 
-gpt_mode = False
 calc_mode = False
-write_exp = False
-view_exp = False
-exp_dt = False
-amount_d = False
-search = False
-convert = False
-currency_r = False
-add_capital = False
-bal = False
 balanc = 0
 
 
@@ -69,148 +60,47 @@ def switch_calc_mode(message):
     if calc_mode:
         bot.send_message(message.chat.id, 'режим калькулятор выключен')
         calc_mode = False
+        print(calc_mode)
     else:
         bot.send_message(message.chat.id, 'режим калькулятор включен')
         calc_mode = True
-
-
-@bot.message_handler(commands=['gpt'])
-def switch_calc_mode(message):
-    global gpt_mode
-    if gpt_mode:
-        bot.send_message(message.chat.id, 'До свидания!')
-        gpt_mode = False
-    else:
-        bot.send_message(message.chat.id, 'Здравствуйте, я Chat gpt, Вы можете мне написать и я вам отвечу')
-        bot.register_next_step_handler(message, process_request)
-        gpt_mode = True
-
-
-@bot.message_handler(commands=['write_expenses'])
-def switch_calc_mode(message):
-    global write_exp
-    if write_exp:
-        bot.send_message(message.chat.id, 'off')
-        write_exp = False
-    else:
-        bot.send_message(message.chat.id, 'on')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
-        write_exp = True
-
-
-@bot.message_handler(commands=['view_expenses'])
-def switch_calc_mode(message):
-    global view_exp
-    if view_exp:
-        bot.send_message(message.chat.id, 'off')
-        view_exp = False
-    else:
-        bot.send_message(message.chat.id, 'on')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
-        view_exp = True
-
-
-@bot.message_handler(commands=['expenses_dates'])
-def switch_calc_mode(message):
-    global exp_dt
-    if exp_dt:
-        bot.send_message(message.chat.id, 'off')
-        exp_dt = False
-    else:
-        bot.send_message(message.chat.id, 'on')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
-        exp_dt = True
-
-
-@bot.message_handler(commands=['amount_day'])
-def switch_calc_mode(message):
-    global amount_d
-    if amount_d:
-        bot.send_message(message.chat.id, 'off')
-        amount_d = False
-    else:
-        bot.send_message(message.chat.id, 'on')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
-        amount_d = True
-
-
-@bot.message_handler(commands=['organization_search'])
-def switch_calc_mode(message):
-    global search
-    if search:
-        bot.send_message(message.chat.id, 'off')
-        search = False
-    else:
-        bot.send_message(message.chat.id, 'on')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
-        search = True
-
-
-@bot.message_handler(commands=['convert_currency'])
-def switch_calc_mode(message):
-    global convert
-    if convert:
-        bot.send_message(message.chat.id, 'off')
-        convert = False
-    else:
-        bot.send_message(message.chat.id, 'on')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
-        convert = True
-
-
-@bot.message_handler(commands=['currency_rate'])
-def switch_calc_mode(message):
-    global currency_r
-    if currency_r:
-        bot.send_message(message.chat.id, 'off')
-        currency_r = False
-    else:
-        bot.send_message(message.chat.id, 'on')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
-        currency_r = True
-
-
-@bot.message_handler(commands=['add_capital'])
-def switch_calc_mode(message):
-    bot.send_message(message.chat.id, 'Введите ваш капитал')
-    bot.register_next_step_handler(message, capital)
-
-
-@bot.message_handler(commands=['balance'])
-def switch_calc_mode(message):
-    global balanc
-    bot.send_message(message.chat.id, str(balanc))
+        print(calc_mode)
 
 
 @bot.message_handler()
 def on_click(message):
-    if gpt_mode:
-        process_request(message)
-    elif calc_mode:
+    if calc_mode:
         bot.reply_to(message, calculate(message.text))
-    elif write_exp:
-        bot.send_message(message.chat.id, 'Введите расход через дефис в виде [КАТЕГОРИЯ-ЦЕНА-ВАЛЮТА]:')
-        bot.register_next_step_handler(message, repeat_all_messages)
-    elif view_exp:
-        for user in session.query(User).all():
-            text_message = f'{user.today} \nПользователь: {user.user_name} \nкатегория: {user.category} \nсумма: {user.price}\n'
+    else:
+        if message.text.lower() == '/write_expenses':
+            bot.send_message(message.chat.id, 'Введите расход через дефис в виде [КАТЕГОРИЯ-ЦЕНА-ВАЛЮТА]:')
+            bot.register_next_step_handler(message, repeat_all_messages)
+        elif message.text.lower() == '/view_expenses':
+            for user in session.query(User).all():
+                text_message = f'{user.today} \nПользователь: {user.user_name} \nкатегория: {user.category} \nсумма: {user.price}\n'
+                bot.send_message(message.chat.id, text_message)
+        elif message.text.lower() == '/organization_search':
+            text_message = 'Выберите категорию и город в формате ["КАТЕГОРИЯ", "ГОРОД"]:'
             bot.send_message(message.chat.id, text_message)
-    elif exp_dt:
-        bot.send_message(message.chat.id, 'Введите дату в формате дд-мм-гг')
-        bot.register_next_step_handler(message, expenses_by_dates)
-    elif amount_d:
-        bot.send_message(message.chat.id, 'Введите дату в формате дд-мм-гг')
-        bot.register_next_step_handler(message, amount_of_expenses)
-    elif search:
-        text_message = 'Выберите категорию и город в формате ["КАТЕГОРИЯ", "ГОРОД"]:'
-        bot.send_message(message.chat.id, text_message)
-        bot.register_next_step_handler(message, poisk)
-    elif convert:
-        bot.send_message(message.chat.id, 'Введите валюту в формате [В какую(GBP)-Из какой(GBP)-Сколько]')
-        bot.register_next_step_handler(message, currency)
-    elif currency_r:
-        bot.send_message(message.chat.id, 'Введите валюту в формате (GBP)')
-        bot.register_next_step_handler(message, currency_exchange_rate)
+            bot.register_next_step_handler(message, poisk)
+        elif message.text.lower() == '/expenses_dates':
+            bot.send_message(message.chat.id, 'Введите дату в формате дд-мм-гг')
+            bot.register_next_step_handler(message, expenses_by_dates)
+        elif message.text.lower() == '/amount_day':
+            bot.send_message(message.chat.id, 'Введите дату в формате дд-мм-гг')
+            bot.register_next_step_handler(message, amount_of_expenses)
+        elif message.text.lower() == '/convert_currency':
+            bot.send_message(message.chat.id, 'Введите валюту в формате [В какую(GBP)-Из какой(GBP)-Сколько]')
+            bot.register_next_step_handler(message, currency)
+        elif message.text.lower() == '/currency_rate':
+            bot.send_message(message.chat.id, 'Введите валюту в формате (GBP)')
+            bot.register_next_step_handler(message, currency_exchange_rate)
+        elif message.text.lower() == '/add_capital':
+            bot.send_message(message.chat.id, 'Введите ваш капитал')
+            bot.register_next_step_handler(message, capital)
+        elif message.text.lower() == '/balance':
+            bot.register_next_step_handler(message, balance)
+
 
 
 @bot.message_handler()
@@ -239,12 +129,14 @@ def calculate(message):
     try:
         result = eval(message)
         return str(result)
-    except:
+    except ZeroDivisionError:
         return 'Некорректное выражение'
+    except:
+        return 'Отключите режим калькулятора'
 
 
 def is_calc_type(message):
-    if '+' in message.text or '-' in message.text or '*' in message.text or \
+    if '+' in message.text or '-' in message.text or '*' in message.text or\
             '/' in message.text or '//' in message.text or '%' in message.text and \
             message.text[1] != '/':
         return True
@@ -259,7 +151,6 @@ def repeat_all_messages(message):
         today = datetime.date.today()
         text_message = f'На {today} в таблицу расходов добавлена запись: категория {category}, сумма {price} {currency}'
         bot.send_message(message.chat.id, text_message)
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
         balanc -= int(price)
 
         # открываем таблицу и добавляем запись
@@ -274,22 +165,19 @@ def repeat_all_messages(message):
         session.commit()
     except:
         bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
+        bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
 
 
 def expenses_by_dates(message):
     expenses = []
     for user in session.query(User).all():
         if user.today == message.text:
-            expenses.append(
-                f'{user.today} \nПользователь: {user.user_name} \nкатегория: {user.category} \nсумма: {user.price}\n')
+            expenses.append(f'{user.today} \nПользователь: {user.user_name} \nкатегория: {user.category} \nсумма: {user.price}\n')
     if expenses:
         for i in expenses:
             bot.send_message(message.chat.id, i)
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
     else:
         bot.send_message(message.chat.id, 'На эту дату нет расходов')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
 
 
 def amount_of_expenses(message):
@@ -299,10 +187,9 @@ def amount_of_expenses(message):
             total_amount.append(user.price)
     if total_amount:
         bot.send_message(message.chat.id, str(sum(list(map(int, total_amount)))))
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
+        print(sum(list(map(int, total_amount))))
     else:
         bot.send_message(message.chat.id, 'На эту дату нет расходов')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
 
 
 def capital(message):
@@ -316,6 +203,12 @@ def capital(message):
         bot.send_message(message.chat.id, 'Теперь я могу считывать ваш баланс!')
     except:
         bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
+        bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
+
+
+def balance(message):
+    global balanc
+    bot.send_message(message.chat.id, str(balanc))
 
 
 def currency(message):
@@ -332,10 +225,9 @@ def currency(message):
         try:
             json = response.json()['result']
             bot.send_message(message.chat.id, str(json))
-            bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
         except:
             bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
-            bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
+            bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
 
 
 def currency_exchange_rate(message):
@@ -344,7 +236,7 @@ def currency_exchange_rate(message):
         bot.send_message(message.chat.id, f"{data['Valute'][message.text]['Value']} ₽")
     except:
         bot.send_message(message.chat.id, 'ОШИБКА! Неправильный формат данных!')
-        bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
+        bot.send_message(message.chat.id, 'Введите команду заново и повторите попытку')
 
 
 def poisk(message):
@@ -367,12 +259,13 @@ def poisk(message):
                 text_message = f'{json}, {json2} \n{json3} \n{json1} \n{json4}\n'
                 bot.send_message(message.chat.id, text_message)
         except:
-            bot.send_message(message.chat.id, 'ОШИБКА! Что-то пошло не так')
-            bot.send_message(message.chat.id, 'Нажмите на любую клавишу')
+
+            bot.send_message(message.chat.id, 'ОШИБКА! Что-то пошло не так, введите команду заново и повторите попытку')
             pygame.init()
 
         request = f'https://static-maps.yandex.ru/1.x/?pt={sp2[0]},{sp2[1]},org~{sp2[2]},' \
                   f'{sp2[3]},org~{sp2[4]},{sp2[5]},org~{sp2[6]},{sp2[7]},org~{sp2[8]},{sp2[9]},org,&z=13&size=650,450&l=map'
+        print(sp2)
         response = requests.get(request)
         if response:
             with open('map.jpeg', mode='wb') as map_file:
@@ -381,6 +274,7 @@ def poisk(message):
             bot.send_photo(message.chat.id, photo)
         else:
             raise RuntimeError
+
 
     # https://search-maps.yandex.ru/v1/?text=кафе,Псков&type=biz&lang=ru_RU&apikey=9ec7254a-4fc4-49cf-b617-89cd8e5f5860
 
