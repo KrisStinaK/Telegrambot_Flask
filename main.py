@@ -25,8 +25,7 @@ def help_command(message):
     time.sleep(0.3)
     text = f'/write_expenses - Записать расходы\n/view_expenses - Посмотреть расходы\n/expenses_dates - Расходы по датам' \
            f'\n/amount_day - Общая сумма расходов за день\n/organization_search - Поиск организации\n/convert_currency - Конвертировать валюту\n' \
-           f'/currency_rate - Курс валюты \n/calc - Калькулятор\n/add_capital - Добавить капитал\n/balance - Баланс\n/gpt - Пообщайтесь с ии Chat gpt\n' \
-           f'Вызовите функцию повторно чтобы ее отключить'
+           f'/currency_rate - Курс валюты \n/calc - Калькулятор\n/add_capital - Добавить капитал\n/balance - Баланс\n/weather - Узнать погоду\n'
     bot.send_message(message.chat.id, text)
 
 
@@ -45,7 +44,7 @@ def startcommand(message):
     btn8 = types.KeyboardButton('/calc')
     btn9 = types.KeyboardButton('/add_capital')
     btn10 = types.KeyboardButton('/balance')
-    btn11 = types.KeyboardButton('/gpt')
+    btn11 = types.KeyboardButton('/weather')
     markup.add(btn, btn1, btn2, btn3, btn4, btn5)
     markup.add(btn6, btn7, btn8, btn9, btn10, btn11)
     bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}👋!')
@@ -60,11 +59,10 @@ def switch_calc_mode(message):
     if calc_mode:
         bot.send_message(message.chat.id, 'режим калькулятор выключен')
         calc_mode = False
-        print(calc_mode)
+
     else:
         bot.send_message(message.chat.id, 'режим калькулятор включен')
         calc_mode = True
-        print(calc_mode)
 
 
 @bot.message_handler()
@@ -100,29 +98,9 @@ def on_click(message):
             bot.register_next_step_handler(message, capital)
         elif message.text.lower() == '/balance':
             bot.register_next_step_handler(message, balance)
-
-
-
-@bot.message_handler()
-def process_request(message):
-    try:
-        # Get user message
-        user_message = message.text
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=user_message,
-            max_tokens=100
-        )
-
-        # Get OpenAI response
-        bot_response = response.choices[0].text
-
-        # Send response to user
-        bot.reply_to(message, bot_response)
-
-    except Exception as e:
-        # Handle errors
-        bot.reply_to(message, "Sorry, I couldn't process your request. Please try again later.")
+        elif message.text.lower() == '/weather':
+            bot.send_message(message.chat.id, 'Введите город')
+            bot.register_next_step_handler(message, weather)
 
 
 def calculate(message):
@@ -187,7 +165,6 @@ def amount_of_expenses(message):
             total_amount.append(user.price)
     if total_amount:
         bot.send_message(message.chat.id, str(sum(list(map(int, total_amount)))))
-        print(sum(list(map(int, total_amount))))
     else:
         bot.send_message(message.chat.id, 'На эту дату нет расходов')
 
@@ -265,7 +242,6 @@ def poisk(message):
 
         request = f'https://static-maps.yandex.ru/1.x/?pt={sp2[0]},{sp2[1]},org~{sp2[2]},' \
                   f'{sp2[3]},org~{sp2[4]},{sp2[5]},org~{sp2[6]},{sp2[7]},org~{sp2[8]},{sp2[9]},org,&z=13&size=650,450&l=map'
-        print(sp2)
         response = requests.get(request)
         if response:
             with open('map.jpeg', mode='wb') as map_file:
@@ -277,6 +253,26 @@ def poisk(message):
 
 
     # https://search-maps.yandex.ru/v1/?text=кафе,Псков&type=biz&lang=ru_RU&apikey=9ec7254a-4fc4-49cf-b617-89cd8e5f5860
+
+
+def weather(message):
+    api_key = "3c676fb5de28bf3711d67156e446b772"
+    base_url = "http://api.openweathermap.org/data/2.5/weather?"
+    city_name = message.text
+    complete_url = base_url + "appid=" + api_key + "&q=" + city_name + '&units=metric'
+    response = requests.get(complete_url)
+    x = response.json()
+    if x["cod"] != "404":
+        y = x["main"]
+        current_temperature = y["temp"]
+        if current_temperature < 10:
+            bot.send_message(message.chat.id, f'Сегодня холодно: {str(int(current_temperature))}°')
+        elif 15 > current_temperature > 10:
+            bot.send_message(message.chat.id, f'Сегодня прохладненько: {str(int(current_temperature))}°')
+        if 25 >= current_temperature > 15:
+            bot.send_message(message.chat.id, f'Сегодня тёпленько: {str(int(current_temperature))}°')
+        if current_temperature > 25:
+            bot.send_message(message.chat.id, f'Отличная погода чтобы искупаться!!!: {str(int(current_temperature))}°')
 
 
 # START
